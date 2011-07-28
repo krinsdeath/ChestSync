@@ -10,28 +10,38 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
+import org.bukkit.ChatColor;
 
 import org.bukkit.Location;
+import org.bukkit.block.Block;
 import org.bukkit.block.Chest;
+import org.bukkit.block.Sign;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
 
 public class SyncedChest implements Serializable {
     private static final long serialVersionUID = 31L;
 
 	protected static HashMap<String, LinkedList<SyncedChest>> syncedChests = new HashMap<String, LinkedList<SyncedChest>>();
 	protected static HashMap<Location, SyncedChest> chests = new HashMap<Location, SyncedChest>();
-    protected double x;
-    protected double y;
-    protected double z;
 	protected transient Location chest;
     protected String world;
 	protected String name;
 	protected boolean inUse = false;
-	protected SyncedChest(Location location, String name) {
+    protected final double x;
+    protected final double y;
+    protected final double z;
+    protected final double signx;
+    protected final double signy;
+    protected final double signz;
+	protected SyncedChest(Location sign, Location location, String name) {
 		this.chest = location;
         this.x = location.getX();
         this.y = location.getY();
         this.z = location.getZ();
+        this.signx = sign.getX();
+        this.signy = sign.getY();
+        this.signz = sign.getZ();
         this.world = location.getWorld().getName();
 		this.name = name;
 	}
@@ -82,19 +92,38 @@ public class SyncedChest implements Serializable {
 		inUse = use;
 	}
 	
-	public static SyncedChest createSyncedChest(Location location, String name) {
+	public static SyncedChest createSyncedChest(Location sign, Location location, String name) {
 		if (location.getBlock().getState() instanceof Chest && !name.isEmpty()) {
-			SyncedChest chest = new SyncedChest(location, name);
+			SyncedChest chest = new SyncedChest(sign, location, name);
 			if (syncedChests.containsKey(name)) {
 				LinkedList<SyncedChest> list = syncedChests.get(name);
 				list.add(chest);
 				list.getFirst().update();
-				
-			}
-			else {
+				for (SyncedChest in : syncedChests.get(name)) {
+                    Location loc = new Location(sign.getWorld(), in.signx, in.signy, in.signz);
+                    Block tmp = loc.getBlock();
+                    if (tmp.getState() instanceof Sign) {
+                        Sign the = (Sign) tmp.getState();
+                        String line0 = "&A[Synced]".replaceAll("&([a-fA-F0-9])", "\u00A7$1");
+                        the.setLine(0, line0);
+                        the.setLine(1, name);
+                        the.setLine(2, "");
+                        the.setLine(3, "[" + syncedChests.get(name).size() + "]");
+                        the.update();
+                    }
+                }
+			} else {
 				LinkedList<SyncedChest> list = new LinkedList<SyncedChest>();
 				list.add(chest);
+                String line0 = "&C[Synced]".replaceAll("&([a-fA-F0-9])", "\u00A7$1");
+                String line2 = "&C[no link]".replaceAll("&([a-fA-F0-9])", "\u00A7$1");
 				syncedChests.put(name, list);
+                Sign tmp = ((Sign)sign.getBlock().getState());
+                tmp.setLine(0, line0);
+                tmp.setLine(1, name);
+                tmp.setLine(2, line2);
+                tmp.setLine(3, "[" + syncedChests.get(name).size() + "]");
+                tmp.update();
 			}
 			chests.put(location, chest);
 			return chest;
@@ -106,13 +135,46 @@ public class SyncedChest implements Serializable {
 		SyncedChest chest = chests.get(location);
 		if (chest != null) {
 			LinkedList<SyncedChest> list = syncedChests.get(chest.getName());
+            for (SyncedChest in : list) {
+                Location loc = new Location(chest.getLocation().getWorld(), in.signx, in.signy, in.signz);
+                Block tmp = loc.getBlock();
+                if (tmp.getState() instanceof Sign) {
+                    Sign the = (Sign) tmp.getState();
+                    String line0 = "", line2 = "";
+                    if (syncedChests.get(chest.getName()).size() == 2) {
+                        line0 = "&C[Synced]";
+                        line2 = "&C[no link]";
+                    } else {
+                        line0 = "&A[Synced]";
+                    }
+                    line0 = line0.replaceAll("&([a-fA-F0-9])", "\u00A7$1");
+                    line2 = line2.replaceAll("&([a-fA-F0-9])", "\u00A7$1");
+                    the.setLine(0, line0);
+                    the.setLine(1, chest.getName());
+                    the.setLine(2, line2);
+                    the.setLine(3, "[" + (syncedChests.get(chest.getName()).size()-1) + "]");
+                    the.update();
+                }
+            }
 			if (list.size() == 1) {
 				syncedChests.remove(chest.getName());
+                for (ItemStack item : chest.getInventory().getContents()) {
+                    if (item == null) { continue; }
+                    location.getWorld().dropItemNaturally(location, item);
+                }
+
+                chest.getInventory().clear();
+			} else {
+                chest.getInventory().clear();
 			}
-			else {
-				list.remove(chest);
-			}
-            chests.remove(chest);
+            Location sign = new Location(chest.getLocation().getWorld(), chest.signx, chest.signy, chest.signz);
+            Sign tmp = (Sign) sign.getBlock().getState();
+            tmp.setLine(0, "[no chest]");
+            tmp.setLine(1, "");
+            tmp.setLine(2, "");
+            tmp.setLine(3, "");
+            list.remove(chest);
+            chests.remove(chest.getLocation());
 			return chest;
 		}
 		return null;
@@ -131,12 +193,15 @@ public class SyncedChest implements Serializable {
                 tmp.getParentFile().mkdirs();
                 tmp.createNewFile();
             }
+            if (tmp.length() > 0) {
+                tmp.delete();
+                tmp.createNewFile();
+            }
             file = new FileOutputStream(tmp);
             out = new ObjectOutputStream(file);
             out.writeObject(syncedChests);
             out.close();
         } catch (IOException e) {
-            System.out.println("Error creating " + tmp.getName() + ": " + e);
         }
     }
 
@@ -155,15 +220,14 @@ public class SyncedChest implements Serializable {
             temp = (HashMap<String, LinkedList<SyncedChest>>) in.readObject();
             in.close();
         } catch (IOException e) {
-            System.out.println("Error: " + e);
         } catch (ClassNotFoundException e) {
-            System.out.println("Error: " + e);
         }
-        
+        // build the lists again
         for (String key : temp.keySet()) {
             for (SyncedChest chest : temp.get(key)) {
                 Location loc = new Location(plugin.getServer().getWorld(chest.world), chest.x, chest.y, chest.z);
-                createSyncedChest(loc, chest.getName());
+                Location sign = new Location(plugin.getServer().getWorld(chest.world), chest.signx, chest.signy, chest.signz);
+                createSyncedChest(sign, loc, chest.getName());
             }
         }
     }
