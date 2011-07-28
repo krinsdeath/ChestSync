@@ -1,5 +1,5 @@
 name: ChestSync
 main: net.krinsoft.chestsync.ChestSync
-version: 1.0.0
-authors: [krinsdeath, Afforess]
+version: 1.1.0
+authors: [krinsdeath]
 depend: [BukkitContrib]
