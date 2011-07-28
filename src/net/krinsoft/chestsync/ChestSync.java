@@ -1,5 +1,6 @@
 package net.krinsoft.chestsync;
 
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.bukkit.event.Event.Priority;
@@ -8,8 +9,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 public class ChestSync extends JavaPlugin {
 
-	private static final ChestSyncInventoryListener inventoryListener = new ChestSyncInventoryListener();
-	private static final ChestSyncBlockListener blockListener = new ChestSyncBlockListener();
+	private final ChestSyncInventoryListener inventoryListener = new ChestSyncInventoryListener(this);
+	private final ChestSyncBlockListener blockListener = new ChestSyncBlockListener(this);
 
 	@Override
 	public void onDisable() {
@@ -23,6 +24,6 @@ public class ChestSync extends JavaPlugin {
 		getServer().getPluginManager().registerEvent(Type.BLOCK_BREAK, blockListener, Priority.Normal, this);
 		getServer().getPluginManager().registerEvent(Type.BLOCK_PLACE, blockListener, Priority.Normal, this);
 		SyncedChest.load(this);
-		Logger.getLogger("Minecraft").info("ChestSync " + this.getDescription().getVersion() + " has been initialized");
+		Logger.getLogger("Minecraft").log(Level.INFO, "ChestSync v{0} has been initialized", this.getDescription().getVersion());
 	}
 }

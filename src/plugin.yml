@@ -1,5 +1,61 @@
 name: ChestSync
 main: net.krinsoft.chestsync.ChestSync
-version: 1.1.0
+version: 1.0.1
 authors: [krinsdeath]
 depend: [BukkitContrib]
+
+permissions:
+  chestsync.make:
+    description: Sets whether this user can make synced chests.
+    default: false
+  chestsync.make.self:
+    description: Lets this user create Synced Chests with his own name.
+    default: false
+  chestsync.make.*:
+    description: Lets this user create Synced Chests with any name.
+    default: false
+  chestsync.access:
+    description: Lets this user access Synced Chests.
+    default: false
+  chestsync.access.self:
+    description: Lets this user access Synced Chests with his own name.
+    default: false
+  chestsync.access.*:
+    description: Lets this user access Synced Chests with any name.
+    default: false
+  chestsync.destroy:
+    description: Sets whether this user can destroy synced chests.
+    default: false
+  chestsync.destroy.self:
+    description: Lets this user destroy Synced Chests with his own name.
+    default: false
+  chestsync.destroy.*:
+    description: Lets this user destroy Synced Chests with any name.
+    default: false
+  chestsync.limited:
+    description: Sets all flags to off, possibly useful for a default group.
+    default: false
+    children:
+      chestsync.make: false
+      chestsync.destroy: false
+      chestsync.access: false
+  chestsync.users:
+    description: Typical user settings.
+    default: true
+    children:
+      chestsync.make: true
+      chestsync.make.self: true
+      chestsync.destroy: true
+      chestsync.destroy.self: true
+      chestsync.access: true
+      chestsync.access.self: true
+  chestsync.*:
+    description: Enables all flags for this plugin's permissions.
+    default: op
+    children:
+      chestsync.make: true
+      chestsync.make.*: true
+      chestsync.destroy: true
+      chestsync.destroy.*: true
+      chestsync.access: true
+      chestsync.access.*: true
