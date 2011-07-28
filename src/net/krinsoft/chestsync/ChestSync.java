@@ -6,13 +6,14 @@ import org.bukkit.event.Event.Priority;
 import org.bukkit.event.Event.Type;
 import org.bukkit.plugin.java.JavaPlugin;
 
-public class ChestSync extends JavaPlugin{
+public class ChestSync extends JavaPlugin {
+
 	private static final ChestSyncInventoryListener inventoryListener = new ChestSyncInventoryListener();
 	private static final ChestSyncBlockListener blockListener = new ChestSyncBlockListener();
 
 	@Override
 	public void onDisable() {
-        SyncedChest.save();
+		SyncedChest.save();
 	}
 
 	@Override
@@ -20,7 +21,7 @@ public class ChestSync extends JavaPlugin{
 		getServer().getPluginManager().registerEvent(Type.CUSTOM_EVENT, inventoryListener, Priority.Normal, this);
 		getServer().getPluginManager().registerEvent(Type.SIGN_CHANGE, blockListener, Priority.Normal, this);
 		getServer().getPluginManager().registerEvent(Type.BLOCK_BREAK, blockListener, Priority.Normal, this);
-        SyncedChest.load(this);
+		SyncedChest.load(this);
 		Logger.getLogger("Minecraft").info("ChestSync " + this.getDescription().getVersion() + " has been initialized");
 	}
 }

@@ -6,7 +6,7 @@ import org.bukkitcontrib.event.inventory.InventoryListener;
 import org.bukkitcontrib.event.inventory.InventoryOpenEvent;
 
 public class ChestSyncInventoryListener extends InventoryListener{
-	
+
 	@Override
 	public void onInventoryClose(InventoryCloseEvent event) {
 		if (event.isCancelled()) {
@@ -21,7 +21,7 @@ public class ChestSyncInventoryListener extends InventoryListener{
 		}
 	}
 
-    @Override
+	@Override
 	public void onInventoryOpen(InventoryOpenEvent event) {
 		if (event.isCancelled()) {
 			return;
