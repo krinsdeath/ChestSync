@@ -45,8 +45,7 @@ public class ChestSyncBlockListener extends BlockListener{
                 event.setLine(2, line2);
                 event.setLine(3, "[" + SyncedChest.syncedChests.get(name).size() + "]");
                 return;
-			}
-			else {
+			} else {
 				event.getPlayer().sendMessage(ChatColor.RED + "There is no chest behind this sign!");
 				return;
 			}
@@ -70,8 +69,7 @@ public class ChestSyncBlockListener extends BlockListener{
 					event.getPlayer().sendMessage(ChatColor.YELLOW + "Synced Chest removed");
 				}
 			}
-		}
-		else if (block.getState() instanceof Chest) {
+		} else if (block.getState() instanceof Chest) {
 			SyncedChest chest = SyncedChest.getSyncedChest(block.getLocation());
 			if (chest != null) {
 				SyncedChest.removeSyncedChest(block.getLocation());

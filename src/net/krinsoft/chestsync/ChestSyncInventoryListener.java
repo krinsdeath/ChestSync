@@ -31,8 +31,7 @@ public class ChestSyncInventoryListener extends InventoryListener{
 			if (chest != null) {
 				if (!chest.syncedChestsInUse()) {
 					chest.setInUse(true);
-				}
-				else {
+				} else {
 					event.setCancelled(true);
 					event.getPlayer().sendMessage(ChatColor.RED + "This chest is currently being used");
 				}
