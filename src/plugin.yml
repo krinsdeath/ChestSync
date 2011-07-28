@@ -2,3 +2,4 @@ name: ChestSync
 main: net.krinsoft.chestsync.ChestSync
 version: 1.0.0
 authors: [krinsdeath, Afforess]
+depend: [BukkitContrib]
