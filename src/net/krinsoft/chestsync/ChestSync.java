@@ -21,6 +21,7 @@ public class ChestSync extends JavaPlugin {
 		getServer().getPluginManager().registerEvent(Type.CUSTOM_EVENT, inventoryListener, Priority.Normal, this);
 		getServer().getPluginManager().registerEvent(Type.SIGN_CHANGE, blockListener, Priority.Normal, this);
 		getServer().getPluginManager().registerEvent(Type.BLOCK_BREAK, blockListener, Priority.Normal, this);
+		getServer().getPluginManager().registerEvent(Type.BLOCK_PLACE, blockListener, Priority.Normal, this);
 		SyncedChest.load(this);
 		Logger.getLogger("Minecraft").info("ChestSync " + this.getDescription().getVersion() + " has been initialized");
 	}

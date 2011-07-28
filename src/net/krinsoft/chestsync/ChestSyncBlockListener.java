@@ -2,10 +2,12 @@ package net.krinsoft.chestsync;
 
 import org.bukkit.ChatColor;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.Chest;
 import org.bukkit.block.Sign;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockListener;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.SignChangeEvent;
 
 public class ChestSyncBlockListener extends BlockListener{
@@ -28,6 +30,13 @@ public class ChestSyncBlockListener extends BlockListener{
 				if (name.trim().isEmpty()) {
 					event.setCancelled(true);
 					event.getPlayer().sendMessage(ChatColor.RED + "Synced Chests require a name on line 2");
+					return;
+				}
+				if (SyncedChest.getSyncedChest(behind.getLocation()) != null) {
+					event.getPlayer().sendMessage(ChatColor.RED + "A Synced Chest already exists here.");
+					event.setCancelled(true);
+					sign.setLine(0, "&C[error]".replaceAll("&([a-fA-F0-9])", "\u00A7$1"));
+					sign.update();
 					return;
 				}
 				SyncedChest.createSyncedChest(event.getBlock().getLocation(), behind.getLocation(), name);
@@ -78,4 +87,22 @@ public class ChestSyncBlockListener extends BlockListener{
 		}
 	}
 
+	@Override
+	public void onBlockPlace(BlockPlaceEvent event) {
+		Block block = event.getBlock();
+		if (block.getState() instanceof Chest) {
+			if (SyncedChest.chests.containsKey(block.getRelative(BlockFace.NORTH).getLocation()))
+				event.getPlayer().sendMessage(ChatColor.RED + "A Synced Chest can only be single");
+				event.setCancelled(true);
+			if (SyncedChest.chests.containsKey(block.getRelative(BlockFace.EAST).getLocation()))
+				event.getPlayer().sendMessage(ChatColor.RED + "A Synced Chest can only be single");
+				event.setCancelled(true);
+			if (SyncedChest.chests.containsKey(block.getRelative(BlockFace.SOUTH).getLocation()))
+				event.getPlayer().sendMessage(ChatColor.RED + "A Synced Chest can only be single");
+				event.setCancelled(true);
+			if (SyncedChest.chests.containsKey(block.getRelative(BlockFace.WEST).getLocation()))
+				event.getPlayer().sendMessage(ChatColor.RED + "A Synced Chest can only be single");
+				event.setCancelled(true);
+		}
+	}
 }

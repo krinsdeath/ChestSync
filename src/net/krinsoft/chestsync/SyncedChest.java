@@ -93,6 +93,9 @@ public class SyncedChest implements Serializable {
 
 	public static SyncedChest createSyncedChest(Location sign, Location location, String name) {
 		if (location.getBlock().getState() instanceof Chest && !name.isEmpty()) {
+			if (chests.get(location) != null) {
+				return null;
+			}
 			SyncedChest chest = new SyncedChest(sign, location, name);
 			if (syncedChests.containsKey(name)) {
 				LinkedList<SyncedChest> list = syncedChests.get(name);
