@@ -10,5 +10,6 @@ Features
 Changelog
 ---------
 Version 1.0.0
+
 *   Added persistence
 *   Initial Release
