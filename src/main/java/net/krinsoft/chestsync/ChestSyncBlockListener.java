@@ -108,7 +108,7 @@ public class ChestSyncBlockListener extends BlockListener{
 					event.getPlayer().sendMessage(ChatColor.RED + "You do not have permission to destroy this chest.");
 					event.setCancelled(true);
 					event.getPlayer().getServer().getScheduler().scheduleAsyncDelayedTask(plugin, new Runnable() {
-						@Override
+                        @Override
 						public void run() {
 							sign.update();
 						}
