@@ -1,5 +1,11 @@
 Changelog
 =========
+Version 1.0.2
+-------------
+*   Double chests
+*   Code Cleanup
+*   Comments?
+
 Version 1.0.1
 -------------
 

@@ -10,6 +10,7 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockListener;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.SignChangeEvent;
+import org.bukkitcontrib.block.ContribChest;
 
 public class ChestSyncBlockListener extends BlockListener{
 	private final ChestSync plugin;
@@ -23,38 +24,54 @@ public class ChestSyncBlockListener extends BlockListener{
 		if (event.isCancelled()) {
 			return;
 		}
-		if (!(event.getBlock().getState() instanceof Sign)) {
-			return;
-		}
 		if (event.getLine(0).toLowerCase().contains("synced chest")) {
 			Sign sign = (Sign)event.getBlock().getState();
 			org.bukkit.material.Sign data = (org.bukkit.material.Sign)sign.getData();
 			Block behind = event.getBlock().getFace(data.getFacing().getOppositeFace());
 			if (behind.getState() instanceof Chest) {
-				//check for valid name
+				Player player = event.getPlayer();
 				String name = event.getLine(1);
-				boolean perm = false;
-				if (name.trim().isEmpty()) {
-					event.setCancelled(true);
-					event.getPlayer().sendMessage(ChatColor.RED + "Synced Chests require a name on line 2");
-					return;
-				}
-				if (!checkPermission(event.getPlayer(), "make", name)) {
-					event.getPlayer().sendMessage(ChatColor.RED + "You do not have permission to make Synced Chests");
+				if (name.equalsIgnoreCase("")) {
+					player.sendMessage(ChatColor.RED + "Synced Chests require a name on line 2");
 					sign.setLine(0, "&C[error]".replaceAll("&([a-fA-F0-9])", "\u00A7$1"));
 					sign.update();
 					event.setCancelled(true);
 					return;
 				}
-				if (SyncedChest.getSyncedChest(behind.getLocation()) != null) {
-					event.getPlayer().sendMessage(ChatColor.RED + "A Synced Chest already exists here.");
-					event.setCancelled(true);
+				if (!checkPermission(player, "make", name)) {
+					player.sendMessage(ChatColor.RED + "You do not have permission to make this Synced Chest");
 					sign.setLine(0, "&C[error]".replaceAll("&([a-fA-F0-9])", "\u00A7$1"));
 					sign.update();
+					event.setCancelled(true);
 					return;
 				}
+				if (SyncedChest.hasSyncedChest(behind.getLocation())) {
+					player.sendMessage(ChatColor.RED + "A Synced Chest already exists at this location");
+					sign.setLine(0, "&C[error]".replaceAll("&([a-fA-F0-9])", "\u00A7$1"));
+					sign.update();
+					event.setCancelled(true);
+					return;
+				}
+				try {
+					if (SyncedChest.syncedChests.get(name).getFirst().isDouble()) {
+						if (!((ContribChest)behind.getState()).isDoubleChest()) {
+							player.sendMessage(ChatColor.RED + "Synced Chests on this network are double chests");
+							sign.setLine(0, "&C[error]".replaceAll("&([a-fA-F0-9])", "\u00A7$1"));
+							sign.update();
+							event.setCancelled(true);
+							return;
+						}
+						if (SyncedChest.chests.containsKey(((ContribChest)behind.getState()).getOtherSide().getBlock().getLocation())) {
+							player.sendMessage(ChatColor.RED + "A Synced Chest already exists at this location");
+							sign.setLine(0, "&C[error]".replaceAll("&([a-fA-F0-9])", "\u00A7$1"));
+							sign.update();
+							event.setCancelled(true);
+							return;
+						}
+					}
+				} catch (NullPointerException e) {}
 				SyncedChest.createSyncedChest(event.getBlock().getLocation(), behind.getLocation(), name);
-				event.getPlayer().sendMessage(ChatColor.GREEN + "Successfully created a linked chest!");
+				player.sendMessage(ChatColor.YELLOW + "Synced Chest created.");
 				String line0 = "", line2 = "";
 				if (SyncedChest.syncedChests.get(name).size() == 1) {
 					line0 = "&C[Synced]";
@@ -69,7 +86,10 @@ public class ChestSyncBlockListener extends BlockListener{
 				event.setLine(3, "[" + SyncedChest.syncedChests.get(name).size() + "]");
 				return;
 			} else {
-				event.getPlayer().sendMessage(ChatColor.RED + "There is no chest behind this sign!");
+				event.getPlayer().sendMessage(ChatColor.RED + "There's no chest there!");
+				sign.setLine(0, "[no chest]");
+				sign.update();
+				event.setCancelled(true);
 				return;
 			}
 		}
@@ -105,13 +125,20 @@ public class ChestSyncBlockListener extends BlockListener{
 			}
 		} else if (block.getState() instanceof Chest) {
 			SyncedChest chest = SyncedChest.getSyncedChest(block.getLocation());
+			if (chest == null) {
+				try {
+					if (((ContribChest)block.getState()).isDoubleChest()) {
+						chest = SyncedChest.getSyncedChest(((ContribChest)block.getState()).getOtherSide().getBlock().getLocation());
+					}
+				} catch (NullPointerException e) {}
+			}
 			if (chest != null) {
 				if (!checkPermission(event.getPlayer(), "destroy", chest.getName())) {
 					event.getPlayer().sendMessage(ChatColor.RED + "You do not have permission to destroy this chest.");
 					event.setCancelled(true);
 					return;
 				}
-				SyncedChest.removeSyncedChest(block.getLocation());
+				SyncedChest.removeSyncedChest(chest.getLocation());
 				event.getPlayer().sendMessage(ChatColor.YELLOW + "Synced Chest removed");
 			}
 		}
@@ -122,20 +149,28 @@ public class ChestSyncBlockListener extends BlockListener{
 		Block block = event.getBlock();
 		if (block.getState() instanceof Chest) {
 			if (SyncedChest.chests.containsKey(block.getRelative(BlockFace.NORTH).getLocation())) {
-				event.getPlayer().sendMessage(ChatColor.RED + "A Synced Chest can only be single");
-				event.setCancelled(true);
+				if (!SyncedChest.getSyncedChest(block.getRelative(BlockFace.NORTH).getLocation()).isDouble()) {
+					event.getPlayer().sendMessage(ChatColor.RED + "Synced Chests on this network can only be single.");
+					event.setCancelled(true);
+				}
 			}
 			if (SyncedChest.chests.containsKey(block.getRelative(BlockFace.EAST).getLocation())) {
-				event.getPlayer().sendMessage(ChatColor.RED + "A Synced Chest can only be single");
-				event.setCancelled(true);
+				if (!SyncedChest.getSyncedChest(block.getRelative(BlockFace.EAST).getLocation()).isDouble()) {
+					event.getPlayer().sendMessage(ChatColor.RED + "Synced Chests on this network can only be single.");
+					event.setCancelled(true);
+				}
 			}
 			if (SyncedChest.chests.containsKey(block.getRelative(BlockFace.SOUTH).getLocation())) {
-				event.getPlayer().sendMessage(ChatColor.RED + "A Synced Chest can only be single");
-				event.setCancelled(true);
+				if (!SyncedChest.getSyncedChest(block.getRelative(BlockFace.SOUTH).getLocation()).isDouble()) {
+					event.getPlayer().sendMessage(ChatColor.RED + "Synced Chests on this network can only be single.");
+					event.setCancelled(true);
+				}
 			}
 			if (SyncedChest.chests.containsKey(block.getRelative(BlockFace.WEST).getLocation())) {
-				event.getPlayer().sendMessage(ChatColor.RED + "A Synced Chest can only be single");
-				event.setCancelled(true);
+				if (!SyncedChest.getSyncedChest(block.getRelative(BlockFace.WEST).getLocation()).isDouble()) {
+					event.getPlayer().sendMessage(ChatColor.RED + "Synced Chests on this network can only be single.");
+					event.setCancelled(true);
+				}
 			}
 		}
 	}
