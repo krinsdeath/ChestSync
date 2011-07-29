@@ -231,7 +231,11 @@ public class SyncedChest implements Serializable {
 	 * @return
 	 * the inventory
 	 */
-	private ContribInventory getInventory() {
+	public ContribInventory getNetworkInventory() {
+        return syncedChests.get(name).getFirst().getInventory();
+	}
+
+    private ContribInventory getInventory() {
 		return ((ContribChest)getLocation().getBlock().getState()).getLargestInventory();
 	}
 
@@ -382,7 +386,7 @@ public class SyncedChest implements Serializable {
 
 	/**
 	 * Loads the Synced Chests from disk
-	 * @param plugin
+	 * @param instance
 	 * Sets up a static reference for the Synced Chests to use (for logging)
 	 */
 	public static void load(ChestSync instance) {
