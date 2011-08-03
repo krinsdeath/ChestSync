@@ -15,7 +15,7 @@ public class ChestSync extends JavaPlugin {
 	private PluginManager pm;
 
 	private final BlockListener bListener = new BlockListener(this);
-	private final ChestListener iListener = new ChestListener(this);
+	private final PlayerListener pListener = new PlayerListener(this);
 
 	@Override
 	public void onEnable() {
@@ -23,16 +23,20 @@ public class ChestSync extends JavaPlugin {
 		pdf = getDescription();
 
 		// events
-		pm.registerEvent(Event.Type.CUSTOM_EVENT, iListener, Event.Priority.Normal, this);
+		pm.registerEvent(Event.Type.PLAYER_INTERACT, pListener, Event.Priority.Normal, this);
 		pm.registerEvent(Event.Type.SIGN_CHANGE, bListener, Event.Priority.Normal, this);
 		pm.registerEvent(Event.Type.BLOCK_BREAK, bListener, Event.Priority.Normal, this);
 		pm.registerEvent(Event.Type.BLOCK_PLACE, bListener, Event.Priority.Normal, this);
-		SyncedChest.load(this);
 
+		SyncedChest.load(this);
+		Utility.init(this);
+
+		System.out.println(getDescription().getFullName() + " by " + getDescription().getAuthors() + " enabled.");
 	}
 
 	@Override
 	public void onDisable() {
 		SyncedChest.save();
+		System.out.println(getDescription().getFullName() + " disabled.");
 	}
 }

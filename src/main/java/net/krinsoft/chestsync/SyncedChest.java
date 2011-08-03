@@ -1,5 +1,11 @@
 package net.krinsoft.chestsync;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -9,9 +15,12 @@ import java.util.regex.Pattern;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
-import org.bukkit.block.Chest;
 import org.bukkit.block.Sign;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.material.Directional;
+import org.bukkit.material.MaterialData;
+import org.getspout.spoutapi.block.SpoutChest;
 
 /**
  *
@@ -19,7 +28,6 @@ import org.bukkit.inventory.Inventory;
  */
 
 public class SyncedChest implements Serializable {
-	private Pattern color = Pattern.compile("&([a-fA-F0-9])");
 
 	/**
 	 * Serializable version ID
@@ -45,7 +53,32 @@ public class SyncedChest implements Serializable {
 	 * Serializes the 'chests' HashMap
 	 */
 	protected static void save() {
-		
+		File file = new File("plugins/ChestSync/chests.dat");
+		FileOutputStream out = null;
+		ObjectOutputStream obj = null;
+		try {
+			if (!file.exists()) {
+				file.createNewFile();
+			} else {
+				file.delete();
+				file.createNewFile();
+			}
+			out = new FileOutputStream(file);
+			obj = new ObjectOutputStream(out);
+			obj.writeObject(networks);
+			obj.flush();
+		} catch (IOException e) {
+			System.out.println("Error with file " + file.getName() + "... " + e);
+		} finally {
+			try {
+				obj.close();
+				out.close();
+			} catch (IOException e) {
+				System.out.println("Error closing stream... " + e);
+			}
+		}
+		networks = null;
+		chests = null;
 	}
 	
 	/**
@@ -53,6 +86,40 @@ public class SyncedChest implements Serializable {
 	 */
 	protected static void load(ChestSync inst) {
 		plugin = inst;
+		File file = new File("plugins/ChestSync/chests.dat");
+		if (file.exists()) {
+			FileInputStream in = null;
+			ObjectInputStream obj = null;
+			HashMap<String, LinkedList<SyncedChest>> list = new HashMap<String, LinkedList<SyncedChest>>();
+			try {
+				in = new FileInputStream(file);
+				obj = new ObjectInputStream(in);
+				list = (HashMap<String, LinkedList<SyncedChest>>) obj.readObject();
+			} catch (IOException e) {
+				System.out.println("Error opening stream: " + e);
+			} catch (ClassNotFoundException e) {
+				System.out.println("Error reading object stream: " + e);
+			} finally {
+				try {
+					obj.close();
+					in.close();
+				} catch (IOException e) {
+					System.out.println("Error closing stream: " + e);
+				}
+			}
+			LinkedList<SyncedChest> l = null;
+			for (String entry : list.keySet()) {
+				System.out.println("Loading network... " + entry);
+				l = new LinkedList<SyncedChest>();
+				for (SyncedChest chest : list.get(entry)) {
+					l.add(chest);
+					chests.add(chest);
+				}
+				networks.put(entry, l);
+				synchronize(entry);
+				System.out.println("... done.");
+			}
+		}
 	}
 
 	/**
@@ -66,13 +133,25 @@ public class SyncedChest implements Serializable {
 	 */
 	public static boolean addSyncedChest(String network, Location loc, Location sign) {
 		if (getSyncedChest(loc) == null) {
+			boolean ok = false;
 			LinkedList<SyncedChest> list = networks.get(network);
 			if (list == null) { list = new LinkedList<SyncedChest>(); }
-			SyncedChest c = new SyncedChest(network, loc, sign);
-			list.add(c);
-			chests.add(c);
-			networks.put(network, list);
-			return true;
+			if (isDoubleNetwork(network)) {
+				if (((SpoutChest)loc.getBlock().getState()).isDoubleChest()) {
+					ok = true;
+				}
+			} else {
+				if (!((SpoutChest)loc.getBlock().getState()).isDoubleChest()) {
+					ok = true;
+				}
+			}
+			if (ok) {
+				SyncedChest c = new SyncedChest(network, loc, sign);
+				list.add(c);
+				chests.add(c);
+				networks.put(network, list);
+				return true;
+			}
 		}
 		return false;
 	}
@@ -88,10 +167,35 @@ public class SyncedChest implements Serializable {
 	 */
 	public static boolean removeSyncedChest(String network, Location loc) {
 		if (getSyncedChest(loc) != null) {
+			SyncedChest c = getSyncedChest(loc);
 			LinkedList<SyncedChest> list = networks.get(network);
+			if (list.size() == 1) {
+				ItemStack[] stack = getInventory(network).getContents();
+				for (ItemStack i : stack) {
+					if (i == null) { continue; }
+					plugin.getServer().getWorld(c.world).dropItemNaturally(loc, i);
+				}
+				getInventory(network).clear();
+			}
+			if (list.getFirst().equals(c) && list.size() > 1) {
+				SpoutChest next = (SpoutChest) list.get(1).getLocation().getBlock().getState();
+				ItemStack[] stack = next.getInventory().getContents();
+				for (ItemStack i : stack) {
+					if (i == null) { continue; }
+					next.getInventory().addItem(i);
+				}
+				((SpoutChest) list.getFirst().getLocation().getBlock().getState()).getInventory().clear();
+			}
 			list.remove(getSyncedChest(loc));
 			chests.remove(getSyncedChest(loc));
-			networks.put(network, list);
+			if (list.isEmpty()) {
+				networks.remove(network);
+				return true;
+			} else {
+				networks.put(network, list);
+				synchronize(network);
+				return true;
+			}
 		}
 		return false;
 	}
@@ -118,6 +222,14 @@ public class SyncedChest implements Serializable {
 		return null;
 	}
 
+	public static boolean isDoubleNetwork(String network) {
+		if (networks.get(network) != null) {
+			return networks.get(network).getFirst().isDouble();
+		} else {
+			return false;
+		}
+	}
+
 	/**
 	 * Synchronizes the inventories of every chest on this network
 	 * @param network
@@ -127,10 +239,8 @@ public class SyncedChest implements Serializable {
 	 */
 	public static boolean synchronize(String network) {
 		if (networks.get(network) != null) {
-			System.out.println("Network isn't null! Has " + networks.get(network).size() + " chests.");
-			Inventory[] inv = networks.get(network).getFirst().getInventory();
 			for (SyncedChest c : networks.get(network)) {
-				c.setInventory(inv);
+				System.out.println("Synchronizing chest ... " + c.toString());
 				c.updateSign();
 			}
 			return true;
@@ -138,6 +248,19 @@ public class SyncedChest implements Serializable {
 			return false;
 		}
 	}
+
+	static Inventory getInventory(String network) {
+		if (networks.get(network) != null) {
+			SyncedChest c = networks.get(network).getFirst();
+			if (c.isDouble()) {
+				return ((SpoutChest)c.getLocation().getBlock().getState()).getLargestInventory();
+			} else {
+				return ((SpoutChest)c.getLocation().getBlock().getState()).getInventory();
+			}
+		}
+		return null;
+	}
+
 
 	// ---------------- //
 	// INSTANCE MEMBERS //
@@ -196,47 +319,25 @@ public class SyncedChest implements Serializable {
 		String line0 = "", line1 = "", line2 = "", line3 = "";
 		Sign s = getSign();
 		if (s.getType() != Material.WALL_SIGN) {
-			System.out.println("test1");
-			org.bukkit.material.Sign aSign = (org.bukkit.material.Sign) s.getData();
+			MaterialData m = s.getData();
+			BlockFace f = ((Directional) m).getFacing();
 			s.setType(Material.WALL_SIGN);
-			aSign.setFacingDirection(aSign.getFacing());
-			s.setData(aSign);
+			m = s.getData();
+			((Directional)m).setFacingDirection(f);
+			s.setData(m);
 			s.update(true);
 		}
 		s = getSign();
 		int size = networks.get(this.network).size();
-		line0 = color.matcher((size > 1) ? "&A[Synced]" : "&C[Synced]").replaceAll("\u00A7$1");
+		line0 = Utility.color((size > 1) ? "&A[Synced]" : "&C[Synced]");
 		line1 = this.network;
-		line2 = color.matcher((size > 1) ? "" : "&C[no link]").replaceAll("\u00A7$1");
+		line2 = Utility.color((size > 1) ? "" : "&C[no link]");
 		line3 = "[" + size + "]";
 		s.setLine(0, line0);
 		s.setLine(1, line1);
 		s.setLine(2, line2);
 		s.setLine(3, line3);
 		s.update(true);
-		System.out.println("test2");
-	}
-
-	public Inventory[] getInventory() {
-		Inventory[] inv = new Inventory[2];
-		if (this.isDouble()) {
-			inv[0] = ((Chest)new Location(plugin.getServer().getWorld(world), fx, fy, fz).getBlock().getState()).getInventory();
-			inv[1] = ((Chest)new Location(plugin.getServer().getWorld(world), sx, sy, sz).getBlock().getState()).getInventory();
-			return inv;
-		} else {
-			inv[0] = ((Chest)new Location(plugin.getServer().getWorld(world), fx, fy, fz).getBlock().getState()).getInventory();
-			inv[1] = null;
-			return inv;
-		}
-	}
-
-	public void setInventory(Inventory[] inv) {
-		if (this.isDouble()) {
-			((Chest)this.getLocation().getBlock().getState()).getInventory().setContents(inv[0].getContents());
-			((Chest)this.getOtherSide().getBlock().getState()).getInventory().setContents(inv[1].getContents());
-		} else {
-			((Chest)this.getLocation().getBlock().getState()).getInventory().setContents(inv[0].getContents());
-		}
 	}
 
 	public boolean isDouble() {
@@ -244,32 +345,12 @@ public class SyncedChest implements Serializable {
 	}
 
 	private boolean determineDouble(Location loc) {
-		if (loc.getBlock().getRelative(BlockFace.NORTH).getState() instanceof Chest) {
-			Location tmp = loc.getBlock().getRelative(BlockFace.NORTH).getLocation();
-			this.sx = tmp.getX();
-			this.sy = tmp.getY();
-			this.sz = tmp.getZ();
-			return true;
-		}
-		if (loc.getBlock().getRelative(BlockFace.SOUTH).getState() instanceof Chest) {
-			Location tmp = loc.getBlock().getRelative(BlockFace.SOUTH).getLocation();
-			this.sx = tmp.getX();
-			this.sy = tmp.getY();
-			this.sz = tmp.getZ();
-			return true;
-		}
-		if (loc.getBlock().getRelative(BlockFace.WEST).getState() instanceof Chest) {
-			Location tmp = loc.getBlock().getRelative(BlockFace.WEST).getLocation();
-			this.sx = tmp.getX();
-			this.sy = tmp.getY();
-			this.sz = tmp.getZ();
-			return true;
-		}
-		if (loc.getBlock().getRelative(BlockFace.EAST).getState() instanceof Chest) {
-			Location tmp = loc.getBlock().getRelative(BlockFace.EAST).getLocation();
-			this.sx = tmp.getX();
-			this.sy = tmp.getY();
-			this.sz = tmp.getZ();
+		SpoutChest chest = (SpoutChest) loc.getBlock().getState();
+		if (chest.isDoubleChest()) {
+			Location l = chest.getOtherSide().getBlock().getLocation();
+			this.sx = l.getX();
+			this.sy = l.getY();
+			this.sz = l.getZ();
 			return true;
 		}
 		this.sx = 0;
