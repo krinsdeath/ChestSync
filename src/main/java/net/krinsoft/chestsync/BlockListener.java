@@ -1,6 +1,7 @@
 package net.krinsoft.chestsync;
 
 import org.bukkit.Location;
+import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Chest;
 import org.bukkit.block.Sign;
@@ -44,14 +45,17 @@ class BlockListener extends org.bukkit.event.block.BlockListener {
 							public void run() {
 								SyncedChest.synchronize(network);
 							}
-						}, 5);
+						}, 2);
+						event.getPlayer().sendMessage(Utility.color("&ESynced Chest created."));
 						return;
 					} else {
+						event.getPlayer().sendMessage(Utility.color("&CA Synced Chest may already exist at this location."));
 						event.setLine(0, Utility.color("&C[error]"));
 						return;
 					}
 				} else {
-					event.setLine(0, Utility.color("&C[no chest]"));
+					event.getPlayer().sendMessage(Utility.color("&CThere's no chest to sync at this location."));
+					event.setLine(0, Utility.color("&C[No chest.]"));
 					return;
 				}
 			}
@@ -84,43 +88,38 @@ class BlockListener extends org.bukkit.event.block.BlockListener {
 					public void run() {
 						SyncedChest.synchronize(net);
 					}
-				}, 5);
+				}, 2);
 				if (REMOVE) {
 					SyncedChest.removeSyncedChest(c.getNetwork(), c.getLocation());
 				}
 			}
 		}
 		if (b.getState() instanceof Chest) {
-			boolean REMOVE = true;
 			SyncedChest c = SyncedChest.getSyncedChest(b.getLocation());
 			if (c != null) {
-				final String net = c.getNetwork();
-				if (!Utility.checkPermission(event.getPlayer(), "destroy", c.getNetwork())) {
-					Utility.error(event.getPlayer(), "permission");
-					event.setCancelled(true);
-					REMOVE = false;
-				}
-				plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
-					@Override
-					public void run() {
-						SyncedChest.synchronize(net);
-					}
-				}, 5);
-				if (REMOVE) {
-					SyncedChest.removeSyncedChest(c.getNetwork(), c.getLocation());
-				}
+				event.setCancelled(true);
 			}
 		}
 	}
 
 	@Override
 	public void onBlockPlace(BlockPlaceEvent event) {
-		if (event.isCancelled()) { return; }
-		if (!event.canBuild()) { return; }
-
-		if (event.getBlock().getState() instanceof Chest) {
-			if (SyncedChest.getSyncedChest(event.getBlock().getLocation()) != null) {
-
+		Block block = event.getBlock();
+		if (block.getState() instanceof Chest) {
+			if (SyncedChest.getSyncedChest(block.getRelative(BlockFace.NORTH).getLocation()) != null) {
+				event.getPlayer().sendMessage(Utility.color("&CThis network requires single chests."));
+				event.setCancelled(true);
+			}
+			if (SyncedChest.getSyncedChest(block.getRelative(BlockFace.SOUTH).getLocation()) != null) {
+				event.getPlayer().sendMessage(Utility.color("&CThis network requires single chests."));
+				event.setCancelled(true);
+			}
+			if (SyncedChest.getSyncedChest(block.getRelative(BlockFace.EAST).getLocation()) != null) {
+				event.getPlayer().sendMessage(Utility.color("&CThis network requires single chests."));
+				event.setCancelled(true);
+			}
+			if (SyncedChest.getSyncedChest(block.getRelative(BlockFace.WEST).getLocation()) != null) {
+				event.getPlayer().sendMessage(Utility.color("&CThis network requires single chests."));
 				event.setCancelled(true);
 			}
 		}

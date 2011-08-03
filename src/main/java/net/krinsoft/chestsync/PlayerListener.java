@@ -1,7 +1,6 @@
 package net.krinsoft.chestsync;
 
 import org.bukkit.Location;
-import org.bukkit.entity.Player;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.getspout.spoutapi.block.SpoutChest;

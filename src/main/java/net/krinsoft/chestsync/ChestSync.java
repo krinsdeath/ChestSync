@@ -19,6 +19,7 @@ public class ChestSync extends JavaPlugin {
 
 	@Override
 	public void onEnable() {
+		System.out.println(getDescription().getFullName() + " initializing...");
 		pm = getServer().getPluginManager();
 		pdf = getDescription();
 

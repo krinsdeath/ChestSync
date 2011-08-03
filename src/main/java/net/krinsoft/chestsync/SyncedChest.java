@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.regex.Pattern;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
@@ -28,6 +27,7 @@ import org.getspout.spoutapi.block.SpoutChest;
  */
 
 public class SyncedChest implements Serializable {
+	private static boolean debug = false;
 
 	/**
 	 * Serializable version ID
@@ -58,6 +58,7 @@ public class SyncedChest implements Serializable {
 		ObjectOutputStream obj = null;
 		try {
 			if (!file.exists()) {
+				file.getParentFile().mkdirs();
 				file.createNewFile();
 			} else {
 				file.delete();
@@ -109,7 +110,7 @@ public class SyncedChest implements Serializable {
 			}
 			LinkedList<SyncedChest> l = null;
 			for (String entry : list.keySet()) {
-				System.out.println("Loading network... " + entry);
+				if (debug) { System.out.println("Syncing network... " + entry); }
 				l = new LinkedList<SyncedChest>();
 				for (SyncedChest chest : list.get(entry)) {
 					l.add(chest);
@@ -117,7 +118,7 @@ public class SyncedChest implements Serializable {
 				}
 				networks.put(entry, l);
 				synchronize(entry);
-				System.out.println("... done.");
+				if (debug) { System.out.println("... done. (" + networks.get(entry).size() + " chests)"); }
 			}
 		}
 	}
@@ -179,7 +180,7 @@ public class SyncedChest implements Serializable {
 			}
 			if (list.getFirst().equals(c) && list.size() > 1) {
 				SpoutChest next = (SpoutChest) list.get(1).getLocation().getBlock().getState();
-				ItemStack[] stack = next.getInventory().getContents();
+				ItemStack[] stack = getInventory(network).getContents();
 				for (ItemStack i : stack) {
 					if (i == null) { continue; }
 					next.getInventory().addItem(i);
@@ -240,7 +241,6 @@ public class SyncedChest implements Serializable {
 	public static boolean synchronize(String network) {
 		if (networks.get(network) != null) {
 			for (SyncedChest c : networks.get(network)) {
-				System.out.println("Synchronizing chest ... " + c.toString());
 				c.updateSign();
 			}
 			return true;
@@ -329,10 +329,9 @@ public class SyncedChest implements Serializable {
 		}
 		s = getSign();
 		int size = networks.get(this.network).size();
-		line0 = Utility.color((size > 1) ? "&A[Synced]" : "&C[Synced]");
-		line1 = this.network;
-		line2 = Utility.color((size > 1) ? "" : "&C[no link]");
-		line3 = "[" + size + "]";
+		line0 = ((size > 1) ? Utility.color("&A") : Utility.color("&C")) + "[Synced]";
+		line1 = ((size > 1) ? Utility.color("&E") : Utility.color("&C")) + this.network;
+		line3 = ((size > 1) ? Utility.color("&A") : Utility.color("&C")) + "Chests: " + size;
 		s.setLine(0, line0);
 		s.setLine(1, line1);
 		s.setLine(2, line2);
