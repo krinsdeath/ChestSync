@@ -1,35 +1,38 @@
 package net.krinsoft.chestsync;
 
-import java.util.logging.Logger;
-
-import org.bukkit.event.Event.Priority;
-import org.bukkit.event.Event.Type;
+import org.bukkit.event.Event;
+import org.bukkit.plugin.PluginDescriptionFile;
+import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
-public class ChestSync extends JavaPlugin {
+/**
+ *
+ * @author krinsdeath
+ */
 
-	private final ChestSyncInventoryListener inventoryListener = new ChestSyncInventoryListener(this);
-	private final ChestSyncBlockListener blockListener = new ChestSyncBlockListener(this);
+public class ChestSync extends JavaPlugin {
+	private PluginDescriptionFile pdf;
+	private PluginManager pm;
+
+	private final BlockListener bListener = new BlockListener(this);
+	private final ChestListener iListener = new ChestListener(this);
+
+	@Override
+	public void onEnable() {
+		pm = getServer().getPluginManager();
+		pdf = getDescription();
+
+		// events
+		pm.registerEvent(Event.Type.CUSTOM_EVENT, iListener, Event.Priority.Normal, this);
+		pm.registerEvent(Event.Type.SIGN_CHANGE, bListener, Event.Priority.Normal, this);
+		pm.registerEvent(Event.Type.BLOCK_BREAK, bListener, Event.Priority.Normal, this);
+		pm.registerEvent(Event.Type.BLOCK_PLACE, bListener, Event.Priority.Normal, this);
+		SyncedChest.load(this);
+
+	}
 
 	@Override
 	public void onDisable() {
 		SyncedChest.save();
-		SyncedChest.syncedChests = null;
-		SyncedChest.chests = null;
-		SyncedChest.plugin = null;
-		String disabled = "[ChestSync] v" + getDescription().getVersion() + " disabled.";
-		Logger.getLogger("Minecraft").info(disabled);
-	}
-
-	@Override
-	public void onEnable() {
-		getServer().getPluginManager().registerEvent(Type.CUSTOM_EVENT, inventoryListener, Priority.Normal, this);
-		getServer().getPluginManager().registerEvent(Type.SIGN_CHANGE, blockListener, Priority.Normal, this);
-		getServer().getPluginManager().registerEvent(Type.BLOCK_BREAK, blockListener, Priority.Normal, this);
-		getServer().getPluginManager().registerEvent(Type.BLOCK_PLACE, blockListener, Priority.Normal, this);
-		SyncedChest.plugin = this;
-		SyncedChest.load(this);
-		String init = "[ChestSync] v" + getDescription().getVersion() + " enabled.";
-		Logger.getLogger("Minecraft").info(init);
 	}
 }
