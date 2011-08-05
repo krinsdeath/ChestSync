@@ -11,7 +11,9 @@ import org.bukkit.util.config.Configuration;
 
 class Utility {
 	private final static Pattern COLOR = Pattern.compile("&([a-fA-F0-9])");
+
 	private static Configuration LOCALE;
+
 	private static ChestSync plugin;
 
 	public static void init(ChestSync inst) {

@@ -142,6 +142,9 @@ public class SyncedChest implements Serializable {
 					ok = true;
 				}
 			} else {
+				if (networks.get(network) == null) {
+					ok = true;
+				}
 				if (!((SpoutChest)loc.getBlock().getState()).isDoubleChest()) {
 					ok = true;
 				}

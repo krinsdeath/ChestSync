@@ -2,3 +2,44 @@ name: ChestSync
 main: net.krinsoft.chestsync.ChestSync
 version: ${project.version}
 author: krinsdeath
+
+permissions:
+  chestsync.make.self:
+    description: Allows the user to make synced networks of their own name
+    default: false
+  chestsync.destroy.self:
+    description: Allows the user to destroy synced chests on their own network
+    default: false
+  chestsync.access.self:
+    description: Allows the user to access chests on their own network.
+    default: false
+  chestsync.make.*:
+    description: Allows the user to make chests of any network name
+    default: false
+  chestsync.destroy.*:
+    description: Allows the user to destroy chests on any network
+    default: false
+  chestsync.access.*:
+    description: Allows the user to access any synced chest.
+    default: false
+  chestsync.limited:
+    description: Disables basic chest sync options for this user
+    default: false
+    children:
+      chestsync.make.self: false
+      chestsync.destroy.self: false
+      chestsync.access.self: false
+  chestsync.users:
+    description: Allows basic use of the synced chest network
+    default: true
+    children:
+      chestsync.make.self: true
+      chestsync.destroy.self: true
+      chestsync.access.self: true
+  chestsync.*:
+    description: Allows all-access to every synced chest
+    default: op
+    children:
+      chestsync.make.*: true
+      chestsync.destroy.*: true
+      chestsync.access.*: true

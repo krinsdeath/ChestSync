@@ -37,9 +37,9 @@ class BlockListener extends org.bukkit.event.block.BlockListener {
 				}
 				Sign sign = (Sign) event.getBlock().getState();
 				org.bukkit.material.Sign aSign = (org.bukkit.material.Sign) sign.getData();
-				Location loc = event.getBlock().getRelative(aSign.getFacing().getOppositeFace()).getLocation();
-				if (loc.getBlock().getState() instanceof Chest) {
-					if (SyncedChest.addSyncedChest(event.getLine(1), loc, sign.getBlock().getLocation())) {
+				Block behind = event.getBlock().getRelative(aSign.getFacing().getOppositeFace());
+				if (behind.getState() instanceof Chest) {
+					if (SyncedChest.addSyncedChest(event.getLine(1), behind.getLocation(), sign.getBlock().getLocation())) {
 						plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
 							@Override
 							public void run() {
