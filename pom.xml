@@ -4,13 +4,27 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>net.krinsoft</groupId>
     <artifactId>chestsync</artifactId>
-    <packaging>jar</packaging>
-    <version>2.0</version>
+    <version>3.0</version>
     <name>ChestSync</name>
+    <description>Allows you to sync chests with each other, and access the same inventory wherever you are</description>
+
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
+
+    <repositories>
+        <repository>
+            <id>bukkit-repo</id>
+            <url>http://repo.bukkit.org/content/groups/public</url>
+        </repository>
+        <repository>
+            <id>ks-releases</id>
+            <url>http://files.krinsoft.net:8085/nexus/content/groups/public</url>
+        </repository>
+    </repositories>
+
     <build>
+        <finalName>${project.name}</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -33,31 +47,14 @@
             </resource>
         </resources>
     </build>
+
     <dependencies>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>3.8.1</version>
-            <scope>test</scope>
-        </dependency>
         <dependency>
             <groupId>org.bukkit</groupId>
             <artifactId>bukkit</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
-            <type>jar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.bukkit</groupId>
-            <artifactId>craftbukkit</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
-            <type>jar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.getspout</groupId>
-            <artifactId>spoutapi</artifactId>
-            <version>dev-SNAPSHOT</version>
+            <version>1.4.6-R0.3</version>
             <type>jar</type>
         </dependency>
     </dependencies>
-    <description>Allows you to sync chests with each other, and access the same inventory wherever you are</description>
+
 </project>
